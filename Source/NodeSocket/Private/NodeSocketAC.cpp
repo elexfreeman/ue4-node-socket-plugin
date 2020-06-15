@@ -144,7 +144,7 @@ void UNodeSocketAC::CloseSocket()
 		ClientSocket->Close();
 		ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->DestroySocket(ClientSocket);
 		ClientSocket = nullptr;
-		GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, TEXT("UNodeSocketAC disconnect"));
+		UE_LOG(LogTemp, Log, TEXT("UNodeSocketAC disconnect"));
 
 	}
 }
