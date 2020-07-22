@@ -17,7 +17,7 @@
 #include "Misc/FileHelper.h"
 #include "IPAddress.h"
 #include "HAL/ThreadSafeBool.h"
-
+#include "Containers/StringConv.h"
 #include "NodeSocketAC.generated.h"
 
 

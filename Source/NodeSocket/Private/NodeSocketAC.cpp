@@ -171,14 +171,18 @@ bool UNodeSocketAC::Emit(const TArray<uint8>& Bytes)
 bool UNodeSocketAC::EmitStr(const FString& str)
 {
 	bool resp = false;
+	UE_LOG(LogTemp, Log, TEXT("Try send msg: %s"), *str);
 
 	// check if there is a connection
 	if (ClientSocket && ClientSocket->GetConnectionState() == SCS_Connected)
 	{
 		int32 BytesSent = 0; // how many bytes sent
-		// convert bytes
-		TArray<uint8> Bytes = fStringToBytes(str);
-		resp = ClientSocket->Send(Bytes.GetData(), Bytes.Num(), BytesSent);
+		
+		// convert string to any charset
+		FTCHARToUTF8 Converted(*str);
+		(uint8*)Converted.Get(), Converted.Length();
+
+		resp = ClientSocket->Send((uint8*)Converted.Get(), Converted.Length(), BytesSent);
 	}
 	return resp;
 }
@@ -202,6 +206,10 @@ TArray<uint8> UNodeSocketAC::fStringToBytes(FString InString)
 {
 	TArray<uint8> ResultBytes;
 	ResultBytes.Append((uint8*)TCHAR_TO_UTF8(*InString), InString.Len());
+
+	UE_LOG(LogTemp, Log, TEXT("str len: %d"), InString.Len());
+	UE_LOG(LogTemp, Log, TEXT("array len: %d"), ResultBytes.Num());
+
 	return ResultBytes;
 }
 
