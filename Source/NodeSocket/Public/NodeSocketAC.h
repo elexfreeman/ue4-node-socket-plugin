@@ -67,6 +67,7 @@ protected:
     TQueue<FString> aReserveQ;
 
     void fMsgEvent();
+    bool fSendStr();
 
 public:
     // Called every frame

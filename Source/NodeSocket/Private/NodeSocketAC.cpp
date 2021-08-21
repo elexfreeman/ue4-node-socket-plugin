@@ -48,7 +48,7 @@ void UNodeSocketAC::EndPlay(const EEndPlayReason::Type EndPlayReason)
 void UNodeSocketAC::ConnectToServer(const FString &InIP, const int32 InPort)
 {
 
-    bool bIsValid =false;
+    bool bIsValid = false;
     // we form the connection address
     this->RemoteAdress = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateInternetAddr();
 
@@ -116,6 +116,17 @@ void UNodeSocketAC::ConnectToServer(const FString &InIP, const int32 InPort)
                       this->ClientSocket->Wait(ESocketWaitConditions::WaitForReadOrWrite, FTimespan(1));
                   }
               });
+
+    // send msg
+    Async(EAsyncExecution::Thread, [&]()
+          {
+              // we start an endless loop for receiving data
+              while (bShouldReceiveData)
+              {
+                  // send str from queue
+                  this->fSendStr();
+              }
+          });
 }
 
 /**
@@ -159,21 +170,9 @@ bool UNodeSocketAC::Emit(const TArray<uint8> &Bytes)
  * */
 bool UNodeSocketAC::EmitStr(const FString &str)
 {
-    bool resp = false;
     UE_LOG(LogTemp, Log, TEXT("Try send msg: %s"), *str);
-
-    // check if there is a connection
-    if (ClientSocket && ClientSocket->GetConnectionState() == SCS_Connected)
-    {
-        int32 BytesSent = 0; // how many bytes sent
-
-        // convert string to any charset
-        FTCHARToUTF8 Converted(*str);
-        (uint8 *)Converted.Get(), Converted.Length();
-
-        resp = this->ClientSocket->Send((uint8 *)Converted.Get(), Converted.Length(), BytesSent);
-    }
-    return resp;
+    this->aSendQ.Enqueue(str);
+    return true;
 }
 
 /**
@@ -207,6 +206,33 @@ void UNodeSocketAC::fMsgEvent()
     {
         this->aReserveQ.Dequeue(s);
         this->OnReceivedStr.Broadcast(s);
-        UE_LOG(LogTemp, Log, TEXT("Broadcast data: %s"), *(s));
     }
+}
+
+/**
+ * Sends bytes to the server
+ * */
+bool UNodeSocketAC::fSendStr()
+{
+    bool resp = false;
+    FString s;
+
+    if (this->aSendQ.IsEmpty())
+    {
+        return false;
+    }
+
+    // check if there is a connection
+    if (ClientSocket && ClientSocket->GetConnectionState() == SCS_Connected)
+    {
+        int32 BytesSent = 0; // how many bytes sent
+
+        // convert string to any charset
+        this->aSendQ.Dequeue(s);
+        FTCHARToUTF8 Converted(*s);
+        (uint8 *)Converted.Get(), Converted.Length();
+
+        resp = this->ClientSocket->Send((uint8 *)Converted.Get(), Converted.Length(), BytesSent);
+    }
+    return resp;
 }
